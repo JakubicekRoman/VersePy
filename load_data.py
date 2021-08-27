@@ -1,5 +1,5 @@
 import numpy as np
-import SimpleITK as sitk
+# import SimpleITK as sitk
 
 
 def read_raw_position(file_name,extract_size,current_index):
