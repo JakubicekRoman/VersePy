@@ -13,12 +13,15 @@ from data_utilities import *
 ## paths
 
 # data directory
-directory = os.path.join(os.getcwd(),'sample')
+directoryRaw = r"C:\Data\Verse2019\rawdata"
+directionDer = r"C:\Data\Verse2019\derivatives"
+
+pat = "sub-verse006"
 
 # load files
-img_nib = nib.load(os.path.join(directory,'sub-verse004_ct.nii.gz'))
-msk_nib = nib.load(os.path.join(directory,'sub-verse004_seg-vert_msk.nii.gz'))
-ctd_list = load_centroids(os.path.join(directory,'sub-verse004_seg-subreg_ctd.json'))
+img_nib = nib.load(os.path.join(directoryRaw,pat,pat + "_ct.nii.gz"))
+msk_nib = nib.load(os.path.join(directionDer,pat,pat + "_seg-vert_msk.nii.gz"))
+ctd_list = load_centroids(os.path.join(directionDer,pat,pat + "_seg-vb_ctd.json"))
 
 
 #check img zooms 
