@@ -16,7 +16,7 @@ from data_utilities import *
 directoryRaw = r"C:\Data\Verse2019\rawdata"
 directionDer = r"C:\Data\Verse2019\derivatives"
 
-pat = "sub-verse008"
+pat = "sub-verse004"
 
 # load files
 img_nib = nib.load(os.path.join(directoryRaw,pat,pat + "_ct.nii.gz"))
