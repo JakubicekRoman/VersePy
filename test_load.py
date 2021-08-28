@@ -66,11 +66,13 @@ n_pat = []
 data_list = []
 mask_list = []
 slice = []
+
+# S = np.zeros((160,3))
 # print(self.pat_list[0])
 # self.name = glob.glob(self.pat_list[0] + "/*nii.gz")cccc
 # print(' '.join(self.name[0]))
 
-# for i in range(1,2):
+# for i in range(158):
 for i in [0]:
 # for i in [1,2,3,4,5,6,7,8,10,11]:
     path = os.path.normpath(pat_list[i])
@@ -80,10 +82,12 @@ for i in [0]:
     file_reader.ReadImageInformation()
     size=file_reader.GetSize()
     
-    ind = np.random.permutation(np.arange(0,size[0])) 
+    # S[i,0:3] = np.array(size)
+    
+    ind = np.random.permutation(np.arange(0,size[2])) 
 
-    # for k in range(20):
-    for k in [0]:
+    for k in range(3):
+    # for k in [0]:
         data_list = data_list + [os.path.normpath(path)]
         p =  os.path.normpath(path.replace("raw","mask",1))
         mask_list = mask_list + [p]
@@ -94,13 +98,19 @@ for i in [0]:
             
     # def __getitem__(self, index):
 
-        img = load_data.read_nii_position(data_list[k],[0,0,1], [-1, -1, int(slice[k]) ])
-        img = img[0:np.min(img.shape),0:np.min(img.shape)]
-        img = cv2.resize(img, dsize=(124, 124), interpolation=cv2.INTER_CUBIC)
+        size_cut = [100,100,1];
+        vel_maxTr = [np.maximum(size[0]-size_cut[0]-1,1), np.maximum(size[1]-size_cut[1]-1,1)]
+        transl = [np.random.randint(0,vel_maxTr[0]), np.random.randint(0,vel_maxTr[1]), int(slice[k])]
+                                   
+        img = load_data.read_nii_position(data_list[-1], size_cut, transl)
+        # img = img[0:np.min(img.shape),0:np.min(img.shape)]
+        # img = cv2.resize(img, dsize=(124, 124), interpolation=cv2.INTER_CUBIC)
         
-        mask = load_data.read_nii_position(mask_list[k],[0,0,1], [-1, -1, int(slice[k]) ])
-        mask = mask[0:np.min(mask.shape),0:np.min(mask.shape)]
-        mask = cv2.resize(mask, dsize=(124, 124), interpolation=cv2.INTER_NEAREST)    
+        size_cut = [100,100,1];
+        mask = load_data.read_nii_position(mask_list[-1], size_cut, transl)
+        # mask = mask[0:np.min(mask.shape),0:np.min(mask.shape)]
+        # mask = cv2.resize(mask, dsize=(124, 124), interpolation=cv2.INTER_NEAREST)    
+        mask[mask<0]=0
         
         plt.figure()
         plt.imshow(img,cmap="gray")
@@ -118,7 +128,10 @@ for i in [0]:
         # return img, mask
 
 
-
+# histogram, bin_edges = np.histogram(S[:,2], bins=256, range=(0, 2000))
+# plt.figure()
+# plt.plot(bin_edges[0:-1], histogram)  # <- or here
+# plt.show()
 
 
 

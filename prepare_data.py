@@ -26,8 +26,10 @@ ctd_lists = glob("C:/Data/Verse2019/derivatives/*/*.json")
 path_save = "D:/Python_Verse/data_reload"
 
 
-# for i in [0]:
-for i in range(len(data_list)):
+# for i in [128]:
+# for i in range(len(data_list)):
+for i in range(129,160):
+
     # load files
     img_nib = nib.load(os.path.join(data_list[i]))
     msk_nib = nib.load(os.path.join(mask_list[i]))
