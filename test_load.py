@@ -84,9 +84,9 @@ for i in [0]:
     
     # S[i,0:3] = np.array(size)
     
-    ind = np.random.permutation(np.arange(0,size[2])) 
+    ind = np.random.permutation(np.arange(20,size[2])) 
 
-    for k in range(3):
+    for k in range(1):
     # for k in [0]:
         data_list = data_list + [os.path.normpath(path)]
         p =  os.path.normpath(path.replace("raw","mask",1))
@@ -98,7 +98,7 @@ for i in [0]:
             
     # def __getitem__(self, index):
 
-        size_cut = [100,100,1];
+        size_cut = [224,224,1];
         vel_maxTr = [np.maximum(size[0]-size_cut[0]-1,1), np.maximum(size[1]-size_cut[1]-1,1)]
         transl = [np.random.randint(0,vel_maxTr[0]), np.random.randint(0,vel_maxTr[1]), int(slice[k])]
                                    
@@ -106,11 +106,12 @@ for i in [0]:
         # img = img[0:np.min(img.shape),0:np.min(img.shape)]
         # img = cv2.resize(img, dsize=(124, 124), interpolation=cv2.INTER_CUBIC)
         
-        size_cut = [100,100,1];
+        size_cut = [224,224,1];
         mask = load_data.read_nii_position(mask_list[-1], size_cut, transl)
         # mask = mask[0:np.min(mask.shape),0:np.min(mask.shape)]
         # mask = cv2.resize(mask, dsize=(124, 124), interpolation=cv2.INTER_NEAREST)    
         mask[mask<0]=0
+        mask[mask>0]=255
         
         plt.figure()
         plt.imshow(img,cmap="gray")

@@ -8,64 +8,89 @@ import matplotlib.pyplot as plt
 import SimpleITK as sitk
 # import medpy as medpy
 # import pandas as pd
-# import torch
-# from torch.utils import data
+import torch
+from torch.utils import data
 import glob
 # import cv2
 import SimpleITK as sitk
-
+import load_data
 
 
 class DataLoader():
-    def __init__(self, path_data):      
+    def __init__(self, path_data, pat):      
         path_data = os.path.normpath(path_data)
-        self.pat_list = glob.glob(os.path.normpath( path_data + r"\rawdata\*"))
-        self.n_pat = []
+        self.pat_list = glob.glob(os.path.normpath( path_data + "\*raw.nii.gz"))
+        n_pat = []
         self.data_list = []
         self.mask_list = []
         self.slice = []
+        self.n_pat = []
+        self.size_data=[]
         # print(self.pat_list[0])
         # self.name = glob.glob(self.pat_list[0] + "/*nii.gz")
         # print(' '.join(self.name[0]))
         
-        for i in range(2):
-            path = [os.path.normpath(pat_list[i])]
-            ind = np.random.permutation(np.arange(0,100))
-            # file_reader = sitk.ImageFileReader()
-            # file_reader.SetFileName(file_name)
-            # file_reader.ReadImageInformation()
-            # size=file_reader.GetSize()
-            for k in range(20):
-                self.data_list = self.data_list + path 
-                self.mask_list = self.mask_list + [path[0].replace('rawdata','derivates',1)]
+        for i in pat:
+            path = os.path.normpath(self.pat_list[i])
+            
+            file_reader = sitk.ImageFileReader()
+            file_reader.SetFileName(path)
+            file_reader.ReadImageInformation()
+            size=file_reader.GetSize()
+    
+            ind = np.random.permutation(np.arange(20,size[2])) 
+            
+            for k in range(10):
+                # for k in [0]:
+                self.data_list = self.data_list + [os.path.normpath(path)]
+                p =  os.path.normpath(path.replace("raw","mask",1))
+                self.mask_list = self.mask_list + [p]
                 self.slice = self.slice + [ind[k]]
                 self.n_pat = self.n_pat + [i]
+                self.size_data = self.size_data + [size]
                 # print(' '.join(self.data_list[i]))
                 # print(self.path)
-            
-    # def __getitem__(self, index):
-    #     img, H = medpy.io.load(self.data_list[index])
-    #     # img = img[:,:,100]
-    #     # img = cv2.resize(img, dsize=(124, 124), interpolation=cv2.INTER_CUBIC)
-    #     img = torch.tensor(((img)+1024)/4096)
-
-    #     mask, H = medpy.io.load(self.mask_list[index])
-    #     # mask = mask[:,:,100]
-    #     # mask = cv2.resize(mask, dsize=(124, 124), interpolation=cv2.INTER_CUBIC)
-    #     mask = torch.tensor(mask.astype(np.bool_))
+                
+    
+    def __len__(self):
+        return len(self.data_list)
+    
+    def __getitem__(self, index):
         
-    #     return img, mask
+        size = self.size_data[index]
+        size_cut = [224,224,1];
+        vel_maxTr = [np.maximum(size[0]-size_cut[0]-1,1), np.maximum(size[1]-size_cut[1]-1,1)]
+        transl = [np.random.randint(0,vel_maxTr[0]), np.random.randint(0,vel_maxTr[1]), int(self.slice[index])]
 
-loader = DataLoader(path_data = "C:\Data\Verse2019")
+        img = load_data.read_nii_position(self.data_list[index], size_cut, transl)
+        img = torch.tensor(((img)+1024)/4096)
+
+        size_cut = [224,224,1];
+        mask = load_data.read_nii_position(self.mask_list[index], size_cut, transl)
+        mask[mask<0]=0
+        mask[mask>0]=255
+        mask = torch.tensor(mask.astype(np.bool_))
+        
+        return img, mask
+
+
+# training loader
+loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
+trainloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=True, drop_last=True)
+
+# testing loader
+loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(5,7))
+testloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=False, drop_last=True)
+
 
 
 ###### testovani funkcnosti
-# img, mask = loader[0]
+# img, mask = loader[3]
 
 # plt.figure()
-# plt.imshow(img[:,:,105],cmap='gray')
+# plt.imshow(img,cmap='gray')
 # plt.figure()
-# plt.imshow(mask[:,:,105],cmap='gray')
+# plt.imshow(mask,cmap='gray')
 
 
 ####### blbosti na testovani

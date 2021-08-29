@@ -26,9 +26,9 @@ ctd_lists = glob("C:/Data/Verse2019/derivatives/*/*.json")
 path_save = "D:/Python_Verse/data_reload"
 
 
-# for i in [128]:
+# for i in [127:160]
 # for i in range(len(data_list)):
-for i in range(129,160):
+for i in range(128,160):
 
     # load files
     img_nib = nib.load(os.path.join(data_list[i]))
@@ -72,8 +72,8 @@ for i in range(129,160):
     im_np  = img_iso.get_fdata()
     msk_np = msk_iso.get_fdata()
     
-    plt.figure()
-    plt.imshow(im_np[:,:,20],cmap="gray")
+    # plt.figure()
+    # plt.imshow(im_np[:,:,20],cmap="gray")
     
     
     imNew = sitk.GetImageFromArray(im_np)
@@ -104,36 +104,40 @@ for i in range(129,160):
     num = "000" + str(i)
     num = num[-3:]
     name = "pat_" + num + "_raw.nii.gz"
-    writer = sitk.ImageFileWriter()
-    writer.SetFileName(path_save + "/" + name)
-    writer.Execute(imNew)
+    # writer = sitk.ImageFileWriter()
+    # writer.SetFileName(path_save + "/" + name)
+    # writer.Execute(imNew)
     
-    name = "pat_" + num + "_mask" + ".nii.gz"
-    writer.SetFileName(path_save + "/" + name)
-    writer.Execute(maskNew)
+    # name = "pat_" + num + "_mask" + ".nii.gz"
+    # writer.SetFileName(path_save + "/" + name)
+    # writer.Execute(maskNew)
     
-    name = "pat_" + num + "_centroids" + ".json"
-    save_centroids(ctd_iso, path_save + "/" + name)
+    # name = "pat_" + num + "_centroids" + ".json"
+    # save_centroids(ctd_iso, path_save + "/" + name)
+    
     
     
     ##### get the mid-slice of the scan and mask in both sagittal and coronal planes
     
-    # im_np_sag = im_np[:,:,int(im_np.shape[2]/2)]
-    # im_np_cor = im_np[:,int(im_np.shape[1]/2),:]
+    im_np_sag = im_np[:,:,int(im_np.shape[2]/2)]
+    im_np_cor = im_np[:,int(im_np.shape[1]/2),:]
     
-    # msk_np_sag = msk_np[:,:,int(msk_np.shape[2]/2)]
-    # msk_np_sag[msk_np_sag==0] = np.nan
+    msk_np_sag = msk_np[:,:,int(msk_np.shape[2]/2)]
+    msk_np_sag[msk_np_sag==0] = np.nan
     
-    # msk_np_cor = msk_np[:,int(msk_np.shape[1]/2),:]
-    # msk_np_cor[msk_np_cor==0] = np.nan
+    msk_np_cor = msk_np[:,int(msk_np.shape[1]/2),:]
+    msk_np_cor[msk_np_cor==0] = np.nan
     
-    # # plot 
-    # fig, axs = create_figure(96,im_np_sag, im_np_cor)
+    # plot 
+    fig, axs = create_figure(96,im_np_sag, im_np_cor)
     
-    # axs[0].imshow(im_np_sag, cmap=plt.cm.gray, norm=wdw_sbone)
-    # axs[0].imshow(msk_np_sag, cmap=cm_itk, alpha=0.3, vmin=1, vmax=64)
-    # plot_sag_centroids(axs[0], ctd_iso, zooms)
+    axs[0].imshow(im_np_sag, cmap=plt.cm.gray, norm=wdw_sbone)
+    axs[0].imshow(msk_np_sag, cmap=cm_itk, alpha=0.3, vmin=1, vmax=64)
+    plot_sag_centroids(axs[0], ctd_iso, zooms)
     
-    # axs[1].imshow(im_np_cor, cmap=plt.cm.gray, norm=wdw_sbone)
-    # axs[1].imshow(msk_np_cor, cmap=cm_itk, alpha=0.3, vmin=1, vmax=64)
-    # plot_cor_centroids(axs[1], ctd_iso, zooms)
+    axs[1].imshow(im_np_cor, cmap=plt.cm.gray, norm=wdw_sbone)
+    axs[1].imshow(msk_np_cor, cmap=cm_itk, alpha=0.3, vmin=1, vmax=64)
+    plot_cor_centroids(axs[1], ctd_iso, zooms)
+    
+    plt.savefig("D:\Python_Verse\data_images" + "/img_" + num + ".png")
+
