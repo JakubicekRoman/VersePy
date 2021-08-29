@@ -13,6 +13,8 @@ import glob
 # import SimpleITK as sitk
 
 import load_data
+import Unet_2D
+
 
 class DataLoader():
     def __init__(self, path_data, pat):      
@@ -57,23 +59,26 @@ class DataLoader():
         size = self.size_data[index]
         size_cut = [224,224,1];
         vel_maxTr = [np.maximum(size[0]-size_cut[0]-1,1), np.maximum(size[1]-size_cut[1]-1,1)]
+        
         transl = [np.random.randint(0,vel_maxTr[0]), np.random.randint(0,vel_maxTr[1]), int(self.slice[index])]
 
         img = load_data.read_nii_position(self.data_list[index], size_cut, transl)
-        img = torch.tensor(((img)+1024)/4096)
-
+        img = torch.tensor(((img.astype(np.float32))+1024)/4096)
+        # img = img.unsqueeze(0)
+        
         size_cut = [224,224,1];
         mask = load_data.read_nii_position(self.mask_list[index], size_cut, transl)
         mask[mask<0]=0
         mask[mask>0]=255
         mask = torch.tensor(mask.astype(np.bool_))
+        # mask = img.unsqueeze(0)
         
         return img, mask
 
 
 
 
-# training loader
+#training loader
 loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
 trainloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=True, drop_last=True)
 
@@ -82,13 +87,19 @@ loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(5,7))
 testloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=False, drop_last=True)
 
 
-# create NET --  U-net
-import Unet_2D
+##### create NET --  U-net
 
-net = Unet_2D.UNet()
+net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(256,128, 64), out_sz=(224,224))
+net = net.cuda()
 
-x = torch.randn(1, 1, 512, 512)
-out = net(x)
+# x = torch.randn(1, 1, 512, 512)
+
+x, mask = loader[0]
+x = x.unsqueeze(0).unsqueeze(0)
+
+out = net(x.cuda())
+# out = net(x)
+          
 
 plt.figure()
 plt.imshow(np.squeeze(x.numpy()),cmap='gray')

@@ -11,9 +11,9 @@ import torch.nn.functional as F
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_ch, out_ch, 3)
+        self.conv1 = nn.Conv2d(in_ch, out_ch, 3, 1, 1)
         self.relu  = nn.ReLU()
-        self.conv2 = nn.Conv2d(out_ch, out_ch, 3)
+        self.conv2 = nn.Conv2d(out_ch, out_ch, 3, 1, 1)
     
     def forward(self, x):
         return self.relu(self.conv2(self.relu(self.conv1(x))))
@@ -56,6 +56,7 @@ class Decoder(nn.Module):
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
             x        = self.upconvs[i](x)
+            # enc_ftrs = encoder_features[i]
             enc_ftrs = self.center_crop(encoder_features[i], (x.shape[2],x.shape[3]))
             x        = torch.cat([x, enc_ftrs], dim=1)
             x        = self.dec_blocks[i](x)
@@ -87,7 +88,7 @@ class UNet(nn.Module):
         super().__init__()
         self.encoder     = Encoder(enc_chs)
         self.decoder     = Decoder(dec_chs)
-        self.head        = nn.Conv2d(dec_chs[-1], num_class, 1)
+        self.head        = nn.Conv2d(dec_chs[-1], num_class, 1, 1)
         self.retain_dim  = retain_dim
         self.out_sz      = out_sz
 
