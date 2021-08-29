@@ -1,10 +1,8 @@
 import os
 import numpy as np
-from random import randint
 import matplotlib.pyplot as plt
 # import matplotlib.image as im
 # import nibabel as nib
-
 import SimpleITK as sitk
 # import medpy as medpy
 # import pandas as pd
@@ -12,15 +10,14 @@ import torch
 from torch.utils import data
 import glob
 # import cv2
-import SimpleITK as sitk
-import load_data
+# import SimpleITK as sitk
 
+import load_data
 
 class DataLoader():
     def __init__(self, path_data, pat):      
         path_data = os.path.normpath(path_data)
         self.pat_list = glob.glob(os.path.normpath( path_data + "\*raw.nii.gz"))
-        n_pat = []
         self.data_list = []
         self.mask_list = []
         self.slice = []
@@ -74,6 +71,8 @@ class DataLoader():
         return img, mask
 
 
+
+
 # training loader
 loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
 trainloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=True, drop_last=True)
@@ -82,6 +81,19 @@ trainloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=True, d
 loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(5,7))
 testloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=False, drop_last=True)
 
+
+# create NET --  U-net
+import Unet_2D
+
+net = Unet_2D.UNet()
+
+x = torch.randn(1, 1, 512, 512)
+out = net(x)
+
+plt.figure()
+plt.imshow(np.squeeze(x.numpy()),cmap='gray')
+plt.figure()
+plt.imshow(out[0,0,:,:].detach().cpu().numpy(),cmap='gray')
 
 
 ###### testovani funkcnosti
