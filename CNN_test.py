@@ -8,6 +8,7 @@ import SimpleITK as sitk
 # import pandas as pd
 import torch
 from torch.utils import data
+import torch.optim as optim
 import glob
 # import cv2
 # import SimpleITK as sitk
@@ -76,35 +77,132 @@ class DataLoader():
         return img, mask
 
 
+def dice_loss(X, Y):
+    eps = 1.
+    dice = ((2. * torch.sum(X*Y) + eps) / (torch.sum(X) + torch.sum(Y) + eps) )
+    return 1 - dice
 
+
+torch.cuda.empty_cache()
 
 #training loader
-loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
-trainloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=True, drop_last=True)
+# loaderTr = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
+loaderTr = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=[0,1,3,4,5])
+trainloader = data.DataLoader(loaderTr,batch_size=2, num_workers=0, shuffle=True, drop_last=True)
 
 # testing loader
-loader = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(5,7))
-testloader= data.DataLoader(loader,batch_size=2, num_workers=0, shuffle=False, drop_last=True)
+loaderTe = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(6,8))
+testloader = data.DataLoader(loaderTe,batch_size=2, num_workers=0, shuffle=False, drop_last=True)
 
 
 ##### create NET --  U-net
 
-net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(256,128, 64), out_sz=(224,224))
+net = Unet_2D.UNet(enc_chs=(1,64,128), dec_chs=(128, 64), out_sz=(224,224))
 net = net.cuda()
+
+optimizer = optim.Adam(net.parameters(), lr=0.0001,weight_decay=1e-8)
+
+
+#### Training
+it = 0
+train_loss = []
+test_loss = []
+train_acc = []
+test_acc = []
+
+for epoch in range(50):
+    
+    acc_tmp = []
+    loss_tmp = []
+    
+    for k,(img,mask) in enumerate(trainloader):
+        it+=1
+
+        img = img.unsqueeze(1)
+        mask = mask.unsqueeze(1)
+        img = img.cuda()
+        mask = mask.cuda()
+        
+        output = net(img)
+    
+        output = torch.sigmoid(output)
+        loss = dice_loss(mask,output)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        mask_num=mask.detach().cpu().numpy()>0.5
+        clas=output.detach().cpu().numpy()>0.5
+        acc=np.mean((clas==mask_num))
+        
+        loss_tmp.append(loss.detach().cpu().numpy())
+        acc_tmp.append(acc)
+        
+    train_loss.append(np.mean(loss_tmp))
+    train_acc.append(np.mean(acc_tmp))
+    
+    torch.cuda.empty_cache()
+
+    acc_tmp = []
+    loss_tmp = []
+    for kk,(img, mask) in enumerate(testloader):
+        # with torch.no_grad():
+    
+        img = img.unsqueeze(1)
+        mask = mask.unsqueeze(1)
+        img=img.cuda()
+        mask=mask.cuda()
+    
+        output=net(img)
+    
+        output = torch.sigmoid(output)
+        loss = dice_loss(mask,output)
+    
+    
+        mask_num=mask.detach().cpu().numpy()>0.5
+        clas=output.detach().cpu().numpy()>0.5
+        acc=np.mean((clas==mask_num))
+    
+        acc_tmp.append(acc)
+        loss_tmp.append(loss.cpu().detach().numpy())
+    
+    test_loss.append(np.mean(loss_tmp))
+    test_acc.append(np.mean(acc_tmp))
+
+    plt.close()
+    plt.figure()
+    plt.plot(train_loss,color='red')
+    plt.plot(test_loss,color='blue')
+    plt.show()
+
+    torch.cuda.empty_cache()
+
+torch.cuda.empty_cache()
+
+# output = net(data)
+
+# output = torch.sigmoid(output)
+# loss = dice_loss(lbl,output)
+
+
 
 # x = torch.randn(1, 1, 512, 512)
 
-x, mask = loader[0]
-x = x.unsqueeze(0).unsqueeze(0)
 
-out = net(x.cuda())
+img, mask = loaderTr[0]
+img = img.unsqueeze(0).unsqueeze(0)
+
+out = net(img.cuda())
 # out = net(x)
-          
-
+       
 plt.figure()
-plt.imshow(np.squeeze(x.numpy()),cmap='gray')
+plt.imshow(np.squeeze(img[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+plt.figure()
+plt.imshow(np.squeeze(mask.detach().cpu().numpy()),cmap='gray')
 plt.figure()
 plt.imshow(out[0,0,:,:].detach().cpu().numpy(),cmap='gray')
+plt.show()
 
 
 ###### testovani funkcnosti
