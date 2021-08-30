@@ -40,7 +40,7 @@ class DataLoader():
     
             ind = np.random.permutation(np.arange(20,size[2])) 
             
-            for k in range(10):
+            for k in range(20):
                 # for k in [0]:
                 self.data_list = self.data_list + [os.path.normpath(path)]
                 p =  os.path.normpath(path.replace("raw","mask",1))
@@ -87,17 +87,17 @@ torch.cuda.empty_cache()
 
 #training loader
 # loaderTr = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
-loaderTr = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=[0,1,3,4,5])
-trainloader = data.DataLoader(loaderTr,batch_size=2, num_workers=0, shuffle=True, drop_last=True)
+loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=[0,1,3,4,5,6,7,8,9])
+trainloader = data.DataLoader(loaderTr,batch_size=8, num_workers=0, shuffle=True, drop_last=True)
 
 # testing loader
-loaderTe = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(6,8))
-testloader = data.DataLoader(loaderTe,batch_size=2, num_workers=0, shuffle=False, drop_last=True)
+loaderTe = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(20,22))
+testloader = data.DataLoader(loaderTe,batch_size=8, num_workers=0, shuffle=False, drop_last=True)
 
 
 ##### create NET --  U-net
 
-net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(256,128, 64), out_sz=(224,224))
+net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(256,128,64), out_sz=(224,224))
 net = net.cuda()
 
 optimizer = optim.Adam(net.parameters(), lr=0.0001,weight_decay=1e-8)
@@ -110,7 +110,10 @@ test_loss = []
 train_acc = []
 test_acc = []
 
-for epoch in range(50):
+plt.figure()
+    
+
+for epoch in range(10):
     
     acc_tmp = []
     loss_tmp = []
@@ -142,41 +145,43 @@ for epoch in range(50):
     train_loss.append(np.mean(loss_tmp))
     train_acc.append(np.mean(acc_tmp))
     
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
 
+# if  (epoch % 5) == 0:
     acc_tmp = []
     loss_tmp = []
     for kk,(img, mask) in enumerate(testloader):
-        # with torch.no_grad():
+        with torch.no_grad():
     
-        img = img.unsqueeze(1)
-        mask = mask.unsqueeze(1)
-        img=img.cuda()
-        mask=mask.cuda()
-    
-        output=net(img)
-    
-        output = torch.sigmoid(output)
-        loss = dice_loss(mask,output)
-    
-    
-        mask_num=mask.detach().cpu().numpy()>0.5
-        clas=output.detach().cpu().numpy()>0.5
-        acc=np.mean((clas==mask_num))
-    
-        acc_tmp.append(acc)
-        loss_tmp.append(loss.cpu().detach().numpy())
-    
+            img = img.unsqueeze(1)
+            mask = mask.unsqueeze(1)
+            img=img.cuda()
+            mask=mask.cuda()
+        
+            output=net(img)
+        
+            output = torch.sigmoid(output)
+            loss = dice_loss(mask,output)
+        
+        
+            mask_num=mask.detach().cpu().numpy()>0.5
+            clas=output.detach().cpu().numpy()>0.5
+            acc=np.mean((clas==mask_num))
+        
+            acc_tmp.append(acc)
+            loss_tmp.append(loss.cpu().detach().numpy())
+                
+               
+#### zobrazeni  
     test_loss.append(np.mean(loss_tmp))
     test_acc.append(np.mean(acc_tmp))
-
-    plt.close()
-    plt.figure()
+    
+    
     plt.plot(train_loss,color='red')
     plt.plot(test_loss,color='blue')
     plt.show()
 
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
 
 torch.cuda.empty_cache()
 
