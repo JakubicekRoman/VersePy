@@ -86,12 +86,12 @@ def dice_loss(X, Y):
 torch.cuda.empty_cache()
 
 #training loader
-loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=[0,1,3,4,5])
-# loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(3,5))
+# loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=[0,1,3,4,5])
+loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(0,100))
 trainloader = data.DataLoader(loaderTr,batch_size=1, num_workers=0, shuffle=True, drop_last=True)
 
 # testing loader
-loaderTe = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(6,7))
+loaderTe = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(100,120))
 testloader = data.DataLoader(loaderTe,batch_size=1, num_workers=0, shuffle=False, drop_last=True)
 
 
@@ -104,7 +104,7 @@ net = torchvision.models.resnet18(pretrained=True)
 # net=net.cuda(0)
 
 
-net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(1024,512,256,128,64), out_sz=(224,224))
+net = Unet_2D.UNet(enc_chs=(1,128,256,512), dec_chs=(512,256,128), out_sz=(224,224))
 net = net.cuda()
 
 # optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
@@ -161,7 +161,7 @@ for epoch in range(50):
         img = img.cuda()
         mask = mask.cuda()
         
-        img = img.repeat(1,3,1,1)
+        # img = img.repeat(1,3,1,1)
         
         output = net(img)
     
@@ -195,7 +195,7 @@ for epoch in range(50):
             img = img.permute(3,0,1,2)
             mask = mask.permute(3,0,1,2)
             
-            img = img.repeat(1,3,1,1)
+            # img = img.repeat(1,3,1,1)
             
             img=img.cuda()
             mask=mask.cuda()
@@ -236,28 +236,27 @@ torch.cuda.empty_cache()
 
 # x = torch.randn(1, 1, 512, 512)
 
+img, mask = loaderTr[0]
+img = img.unsqueeze(0)
+mask = mask.unsqueeze(0)
+img = img.permute(3,0,1,2)
+mask = mask.permute(3,0,1,2)
 
-# img, mask = loaderTr[0]
-# img = img.unsqueeze(0)
-# mask = mask.unsqueeze(0)
-# img = img.permute(3,0,1,2)
-# mask = mask.permute(3,0,1,2)
+# img = img.repeat(1,3,1,1)
 
-# # img = img.repeat(1,3,1,1)
+out = net(img.cuda())       
 
-# # out = net(img.cuda())
-# # out = net(x)
-       
+res = out[0,0,:,:].detach().cpu().numpy()>0.5
 
-# res = out[0,0,:,:].detach().cpu().numpy()>0.5
-
-# plt.figure()
-# plt.imshow(np.squeeze(img[0,0,:,:].detach().cpu().numpy()),cmap='gray')
-# plt.figure()
-# plt.imshow(np.squeeze(mask[0,0,:,:].detach().cpu().numpy()),cmap='gray')
-# plt.figure()
-# plt.imshow(res,cmap='gray')
-# plt.show()
+plt.figure()
+plt.imshow(np.squeeze(img[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+plt.figure()
+plt.imshow(np.squeeze(mask[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+plt.figure()
+plt.imshow(res,cmap='gray')
+plt.figure()
+plt.imshow(out[0,0,:,:].detach().cpu().numpy(),cmap='gray')
+plt.show()
 
 
 ###### testovani funkcnosti
