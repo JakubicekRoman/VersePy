@@ -3,6 +3,7 @@
 # import numpy as np
 import torch.nn as nn
 import torch
+import torchvision
 # from torchvision import transforms
 import torch.nn.functional as F
 # import matplotlib.pyplot as plt
@@ -24,22 +25,39 @@ class Block(nn.Module):
   
 
 class Encoder(nn.Module):
+    # def __init__(self, chs=(1,64,128,256,512,1024)):
+    #     super().__init__()
+    #     self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+    #     self.pool       = nn.MaxPool2d(2)
+    
+    # def forward(self, x):
+    #     ftrs = []
+    #     for block in self.enc_blocks:
+    #         x = block(x)
+    #         ftrs.append(x)
+    #         x = self.pool(x)
+    #     return ftrs
     def __init__(self, chs=(1,64,128,256,512,1024)):
         super().__init__()
-        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
-        self.pool       = nn.MaxPool2d(2)
+        self.model_ft = torchvision.models.resnet50(pretrained=True)
+        num_ftrs = self.model_ft.fc.in_features
+        self.model_ft.fc = nn.Linear(num_ftrs, 1024)        
+        # self.pool       = nn.MaxPool2d(2)
     
     def forward(self, x):
         ftrs = []
-        for block in self.enc_blocks:
-            x = block(x)
-            ftrs.append(x)
-            x = self.pool(x)
+        ftrs = self.model_ft(x)
+        # x = self.pool(x)
+        # for block in self.enc_blocks:
+        #     x = block(x)
+        #     ftrs.append(x)
+        #     x = self.pool(x)
+        ftrs = ftrs.unsqueeze(2).unsqueeze(3)
         return ftrs
   
     
-# encoder = Encoder()
-# # # input image
+# encoder = Unet_2D.Encoder()
+# # # # input image
 # x    = torch.randn(1, 1, 572, 572)
 # ftrs = encoder(x)
 
@@ -47,35 +65,40 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, chs=(1024, 512, 256, 128, 64)):
+    def __init__(self, chs=(1024, 256, 64, 64, 64)):
         super().__init__()
         self.chs         = chs
-        self.upconvs    = nn.ModuleList([nn.ConvTranspose2d(chs[i], chs[i+1], 2, 2) for i in range(len(chs)-1)])
+        # self.upconvs    = nn.ModuleList([nn.ConvTranspose2d(chs[i], chs[i+1], 2, 2) for i in range(len(chs)-1)])
+        self.upconvs    = nn.ModuleList([nn.ConvTranspose2d(chs[i], chs[i], 2, 2) for i in range(len(chs)-1)])
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
         
-    def forward(self, x, encoder_features):
+    # def forward(self, x, encoder_features):
+    #     for i in range(len(self.chs)-1):
+    #         x        = self.upconvs[i](x)
+    #         # enc_ftrs = encoder_features[i]
+    #         enc_ftrs = self.center_crop(encoder_features[i], (x.shape[2],x.shape[3]))
+    #         x        = torch.cat([x, enc_ftrs], dim=1)
+    #         x        = self.dec_blocks[i](x)
+    #     return x
+    def forward(self, x):
         for i in range(len(self.chs)-1):
             x        = self.upconvs[i](x)
+            x        = self.upconvs[i](x)
             # enc_ftrs = encoder_features[i]
-            enc_ftrs = self.center_crop(encoder_features[i], (x.shape[2],x.shape[3]))
-            x        = torch.cat([x, enc_ftrs], dim=1)
+            # enc_ftrs = self.center_crop(encoder_features[i], (x.shape[2],x.shape[3]))
+            # x        = torch.cat([x, enc_ftrs], dim=1)
+            # x        = self.dec_blocks[i](x)
             x        = self.dec_blocks[i](x)
         return x
     
-    def center_crop(self, img, output_size):
-        v = img.shape
-        th, tw = output_size
-        i = int(round((v[2] - th) / 2.))
-        j = int(round((v[3] - tw) / 2.))
-        return img[:,:,i:i+th,j:j+tw]
+    # def center_crop(self, img, output_size):
+    #     v = img.shape
+    #     th, tw = output_size
+    #     i = int(round((v[2] - th) / 2.))
+    #     j = int(round((v[3] - tw) / 2.))
+    #     return img[:,:,i:i+th,j:j+tw]
     
-    # def crop(self, enc_ftrs, x):
-    #     _, _, H, W = x.shape
-    #     # enc_ftrs = torchvision.transforms.CenterCrop([H,W])(enc_ftrs)
-    #     # transform = transforms.Compose([transforms.ToPILImage(), transforms.CenterCrop((H,W)), transforms.ToTensor()])
-    #     # enc_ftrs = transform(enc_ftrs)
-    #     enc_ftrs = center_crop(enc_ftrs,(50,50))
-    #     return enc_ftrs
+
     
 
 # decoder = Decoder()
@@ -94,7 +117,8 @@ class UNet(nn.Module):
 
     def forward(self, x):
         enc_ftrs = self.encoder(x)
-        out      = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
+        # out      = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
+        out      = self.decoder(enc_ftrs)
         out      = self.head(out)
         if self.retain_dim:
             out = F.interpolate(out, self.out_sz)

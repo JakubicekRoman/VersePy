@@ -38,9 +38,9 @@ class DataLoader():
             file_reader.ReadImageInformation()
             size=file_reader.GetSize()
     
-            ind = np.random.permutation(np.arange(20,size[2])) 
+            ind = np.random.permutation(np.arange(33,size[2]-33)) 
             
-            for k in range(20):
+            for k in range(3):
                 # for k in [0]:
                 self.data_list = self.data_list + [os.path.normpath(path)]
                 p =  os.path.normpath(path.replace("raw","mask",1))
@@ -58,7 +58,7 @@ class DataLoader():
     def __getitem__(self, index):
         
         size = self.size_data[index]
-        size_cut = [224,224,1];
+        size_cut = [224,224,32];
         vel_maxTr = [np.maximum(size[0]-size_cut[0]-1,1), np.maximum(size[1]-size_cut[1]-1,1)]
         
         transl = [np.random.randint(0,vel_maxTr[0]), np.random.randint(0,vel_maxTr[1]), int(self.slice[index])]
@@ -67,7 +67,7 @@ class DataLoader():
         img = torch.tensor(((img.astype(np.float32))+1024)/4096)
         # img = img.unsqueeze(0)
         
-        size_cut = [224,224,1];
+        size_cut = [224,224,32];
         mask = load_data.read_nii_position(self.mask_list[index], size_cut, transl)
         mask[mask<0]=0
         mask[mask>0]=255
@@ -86,21 +86,52 @@ def dice_loss(X, Y):
 torch.cuda.empty_cache()
 
 #training loader
-# loaderTr = DataLoader(path_data = "C:\Data\Verse2019\data_reload", pat=range(0,5))
-loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=[0,1,3,4,5,6,7,8,9])
-trainloader = data.DataLoader(loaderTr,batch_size=8, num_workers=0, shuffle=True, drop_last=True)
+loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=[0,1,3,4,5])
+# loaderTr = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(3,5))
+trainloader = data.DataLoader(loaderTr,batch_size=1, num_workers=0, shuffle=True, drop_last=True)
 
 # testing loader
-loaderTe = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(20,22))
-testloader = data.DataLoader(loaderTe,batch_size=8, num_workers=0, shuffle=False, drop_last=True)
+loaderTe = DataLoader(path_data = "C:\Data\Jakubicek\Verse_Py\data_reload", pat=range(6,7))
+testloader = data.DataLoader(loaderTe,batch_size=1, num_workers=0, shuffle=False, drop_last=True)
 
 
 ##### create NET --  U-net
 
-net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(256,128,64), out_sz=(224,224))
+import torchvision
+net = torchvision.models.resnet18(pretrained=True)
+# num_ftrs = net.fc.in_features
+# net.fc = torch.nn.Linear(num_ftrs, 10)
+# net=net.cuda(0)
+
+
+net = Unet_2D.UNet(enc_chs=(1,64,128,256), dec_chs=(1024,512,256,128,64), out_sz=(224,224))
 net = net.cuda()
 
-optimizer = optim.Adam(net.parameters(), lr=0.0001,weight_decay=1e-8)
+# optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
+optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=1e-8)
+
+
+# img, mask = loaderTr[0]
+# img = img.unsqueeze(0)
+# mask = mask.unsqueeze(0)
+# img = img.permute(3,0,1,2)
+# mask = mask.permute(3,0,1,2)
+
+# img = img.repeat(1,3,1,1)
+
+# out = net(img.cuda())
+# res = out[0,0,:,:].detach().cpu().numpy()>0.5
+
+# plt.figure()
+# plt.imshow(np.squeeze(img[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+# plt.figure()
+# plt.imshow(np.squeeze(mask[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+# plt.figure()
+# plt.imshow(res,cmap='gray')
+# plt.figure()
+# plt.imshow(out[0,0,:,:].detach().cpu().numpy(),cmap='gray')
+# plt.show()
+
 
 
 #### Training
@@ -113,7 +144,7 @@ test_acc = []
 plt.figure()
     
 
-for epoch in range(10):
+for epoch in range(50):
     
     acc_tmp = []
     loss_tmp = []
@@ -121,10 +152,16 @@ for epoch in range(10):
     for k,(img,mask) in enumerate(trainloader):
         it+=1
 
-        img = img.unsqueeze(1)
-        mask = mask.unsqueeze(1)
+        # img = img.unsqueeze(1)
+        # mask = mask.unsqueeze(1)
+        
+        img = img.permute(3,0,1,2)
+        mask = mask.permute(3,0,1,2)
+        
         img = img.cuda()
         mask = mask.cuda()
+        
+        img = img.repeat(1,3,1,1)
         
         output = net(img)
     
@@ -153,8 +190,13 @@ for epoch in range(10):
     for kk,(img, mask) in enumerate(testloader):
         with torch.no_grad():
     
-            img = img.unsqueeze(1)
-            mask = mask.unsqueeze(1)
+            # img = img.unsqueeze(1)
+            # mask = mask.unsqueeze(1)
+            img = img.permute(3,0,1,2)
+            mask = mask.permute(3,0,1,2)
+            
+            img = img.repeat(1,3,1,1)
+            
             img=img.cuda()
             mask=mask.cuda()
         
@@ -195,19 +237,27 @@ torch.cuda.empty_cache()
 # x = torch.randn(1, 1, 512, 512)
 
 
-img, mask = loaderTr[0]
-img = img.unsqueeze(0).unsqueeze(0)
+# img, mask = loaderTr[0]
+# img = img.unsqueeze(0)
+# mask = mask.unsqueeze(0)
+# img = img.permute(3,0,1,2)
+# mask = mask.permute(3,0,1,2)
 
-out = net(img.cuda())
-# out = net(x)
+# # img = img.repeat(1,3,1,1)
+
+# # out = net(img.cuda())
+# # out = net(x)
        
-plt.figure()
-plt.imshow(np.squeeze(img[0,0,:,:].detach().cpu().numpy()),cmap='gray')
-plt.figure()
-plt.imshow(np.squeeze(mask.detach().cpu().numpy()),cmap='gray')
-plt.figure()
-plt.imshow(out[0,0,:,:].detach().cpu().numpy(),cmap='gray')
-plt.show()
+
+# res = out[0,0,:,:].detach().cpu().numpy()>0.5
+
+# plt.figure()
+# plt.imshow(np.squeeze(img[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+# plt.figure()
+# plt.imshow(np.squeeze(mask[0,0,:,:].detach().cpu().numpy()),cmap='gray')
+# plt.figure()
+# plt.imshow(res,cmap='gray')
+# plt.show()
 
 
 ###### testovani funkcnosti

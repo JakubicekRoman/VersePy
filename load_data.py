@@ -61,7 +61,6 @@ def read_nii_position(file_name,extract_size,current_index):
     img = np.squeeze(img)
     
 
-    img = np.pad(img,((addX[2],addX[3]),(addX[0],addX[1])),'constant',constant_values=(-1024, -1024))
+    img = np.pad(img,((addX[2],addX[3]),(addX[0],addX[1]),(0,0)),'constant',constant_values=(-1024, -1024))
 
-    
     return img
